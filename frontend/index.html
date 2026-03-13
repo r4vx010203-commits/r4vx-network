@@ -16,7 +16,10 @@
     <div id="publish-box">
         <div class="terminal-label">>> INJECT_NEW_POST</div>
         <textarea id="post-text" placeholder="Escribe tu mensaje cifrado..."></textarea>
-        <input type="text" id="post-image" placeholder="URL de imagen (opcional)">
+        
+        <div class="terminal-label">>> SELECT_IMAGE_PAYLOAD</div>
+        <input type="file" id="post-image" accept="image/*">
+        
         <button onclick="publishPost()">EJECUTAR_INYECCION</button>
     </div>
 
@@ -24,5 +27,4 @@
 
     <script src="app.js"></script>
 </body>
-
 </html>
