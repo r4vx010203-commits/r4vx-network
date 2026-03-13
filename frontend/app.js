@@ -35,30 +35,32 @@ const loadR4VXFeed = () => {
 // 2. Función para inyectar/publicar un nuevo post
 const publishPost = async () => {
     const text = document.getElementById("post-text").value;
-    const image = document.getElementById("post-image").value;
+    const imageInput = document.getElementById("post-image"); // Asegúrate de que este ID sea el del <input type="file">
 
     if (!text) return alert(">> ERROR: EMPTY_PAYLOAD");
 
-    const newPost = {
-        text: text,
-        image: image,
-        date: new Date().toLocaleString() // Genera la ID única por fecha
-    };
+    // Usamos FormData para enviar el archivo
+    const formData = new FormData();
+    formData.append("text", text);
+    formData.append("date", new Date().toLocaleString());
+    
+    if (imageInput.files[0]) {
+        formData.append("image", imageInput.files[0]);
+    }
 
     try {
         const response = await fetch("/publish", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(newPost)
+            body: formData // No necesita headers de Content-Type, el navegador lo pone solo
         });
 
         if (response.ok) {
             document.getElementById("post-text").value = "";
-            document.getElementById("post-image").value = "";
+            imageInput.value = "";
             loadR4VXFeed(); 
         }
     } catch (err) {
-        console.error("FAILED_TO_INJECT:", err);
+        console.error(">> UPLOAD_FAILED:", err);
     }
 };
 
@@ -82,4 +84,5 @@ const deletePost = async (postDate) => {
 };
 
 // 4. Ejecución inicial
+
 loadR4VXFeed();
