@@ -38,7 +38,7 @@ app.post("/publish", upload.single("image"), async (req, res) => {
             form.append("image", req.file.buffer.toString("base64"));
             
             // Reemplaza 'TU_API_KEY_AQUI' con la clave que copiaste de https://api.imgbb.com/
-            const imgbbResponse = await axios.post("https://api.imgbb.com/1/upload?key=TU_API_KEY_AQUI", form, {
+            const imgbbResponse = await axios.post("https://api.imgbb.com/1/upload?key=1974f36958f9e830f76b630a9f2a1fcd", form, {
                 headers: { ...form.getHeaders() }
             });
             
@@ -75,3 +75,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`>> SYSTEM_ARMED: PORT ${PORT}`);
 });
+
