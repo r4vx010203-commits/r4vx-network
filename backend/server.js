@@ -1,62 +1,68 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const multer = require("multer"); // Nueva librería
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Servir frontend
+// 1. Servir el frontend y la carpeta de subidas
 app.use(express.static(path.join(__dirname, "../frontend")));
+app.use("/uploads", express.static(path.join(__dirname, "../frontend/uploads")));
 
 const postsPath = path.join(__dirname, "../database/posts.json");
 
-// Ruta para obtener posts
+// 2. Configuración de Multer (Donde se guardan las fotos)
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadPath = path.join(__dirname, "../frontend/uploads");
+        if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
+        cb(null, uploadPath);
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + "-" + file.originalname);
+    }
+});
+const upload = multer({ storage: storage });
+
+// 3. Rutas
 app.get("/posts", (req, res) => {
     if (!fs.existsSync(postsPath)) return res.json([]);
     const data = fs.readFileSync(postsPath, "utf8");
     res.json(JSON.parse(data));
 });
 
-// Ruta para publicar
-app.post("/publish", (req, res) => {
+// NUEVA RUTA DE PUBLICACIÓN (Acepta archivos)
+app.post("/publish", upload.single("image"), (req, res) => {
     try {
-        const newPost = req.body;
+        const { text, date } = req.body;
+        const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
         let posts = [];
         if (fs.existsSync(postsPath)) {
             posts = JSON.parse(fs.readFileSync(postsPath, "utf8"));
         }
-        posts.unshift(newPost);
+        posts.unshift({ text, date, image: imageUrl });
         fs.writeFileSync(postsPath, JSON.stringify(posts, null, 2));
+        
         res.status(200).send({ status: "ok" });
     } catch (err) {
-        res.status(500).send({ error: "INTERNAL_ERROR" });
+        res.status(500).send({ error: "UPLOAD_ERROR" });
     }
 });
 
-// --- ESTA ES LA RUTA QUE TE FALTABA PARA ELIMINAR ---
 app.delete("/delete-post", (req, res) => {
     const { date } = req.body;
-    try {
-        if (fs.existsSync(postsPath)) {
-            let posts = JSON.parse(fs.readFileSync(postsPath, "utf8"));
-            
-            // Filtra: mantiene todos menos el que coincida con la fecha exacta
-            const updatedPosts = posts.filter(post => post.date !== date);
-            
-            fs.writeFileSync(postsPath, JSON.stringify(updatedPosts, null, 2));
-            console.log(`>> DELETED_POST: ${date}`);
-            return res.status(200).send({ status: "deleted" });
-        }
-        res.status(404).send({ error: "FILE_NOT_FOUND" });
-    } catch (err) {
-        console.error("DELETE_ERROR:", err);
-        res.status(500).send({ error: "DELETE_FAILED" });
+    if (fs.existsSync(postsPath)) {
+        let posts = JSON.parse(fs.readFileSync(postsPath, "utf8"));
+        const updatedPosts = posts.filter(post => post.date !== date);
+        fs.writeFileSync(postsPath, JSON.stringify(updatedPosts, null, 2));
+        res.status(200).send({ status: "deleted" });
     }
 });
 
-// Configuración para Render
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`>> R4VX_SYSTEM_ONLINE_ON_PORT_${PORT}`);
+    console.log(`>> SYSTEM_ARMED: PORT ${PORT}`);
 });
