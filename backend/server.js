@@ -1,57 +1,66 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-const multer = require("multer"); // Nueva librería
+const multer = require("multer");
+const axios = require("axios");
+const FormData = require("form-data");
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 1. Servir el frontend y la carpeta de subidas
+// Servir el frontend
 app.use(express.static(path.join(__dirname, "../frontend")));
-app.use("/uploads", express.static(path.join(__dirname, "../frontend/uploads")));
 
 const postsPath = path.join(__dirname, "../database/posts.json");
 
-// 2. Configuración de Multer (Donde se guardan las fotos)
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadPath = path.join(__dirname, "../frontend/uploads");
-        if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
-        cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + "-" + file.originalname);
-    }
-});
+// Configuración de Multer para usar MEMORIA (evita que Render borre archivos locales)
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// 3. Rutas
+// 1. Obtener posts
 app.get("/posts", (req, res) => {
     if (!fs.existsSync(postsPath)) return res.json([]);
     const data = fs.readFileSync(postsPath, "utf8");
     res.json(JSON.parse(data));
 });
 
-// NUEVA RUTA DE PUBLICACIÓN (Acepta archivos)
-app.post("/publish", upload.single("image"), (req, res) => {
+// 2. Publicar con subida directa a ImgBB
+app.post("/publish", upload.single("image"), async (req, res) => {
     try {
         const { text, date } = req.body;
-        const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+        let imageUrl = null;
+
+        // Si el usuario subió una imagen, la enviamos a ImgBB
+        if (req.file) {
+            const form = new FormData();
+            // Convertimos el buffer de la imagen a Base64 para ImgBB
+            form.append("image", req.file.buffer.toString("base64"));
+            
+            // Reemplaza 'TU_API_KEY_AQUI' con la clave que copiaste de https://api.imgbb.com/
+            const imgbbResponse = await axios.post("https://api.imgbb.com/1/upload?key=TU_API_KEY_AQUI", form, {
+                headers: { ...form.getHeaders() }
+            });
+            
+            imageUrl = imgbbResponse.data.data.url; // Esta URL es permanente
+        }
 
         let posts = [];
         if (fs.existsSync(postsPath)) {
             posts = JSON.parse(fs.readFileSync(postsPath, "utf8"));
         }
+        
         posts.unshift({ text, date, image: imageUrl });
         fs.writeFileSync(postsPath, JSON.stringify(posts, null, 2));
         
         res.status(200).send({ status: "ok" });
     } catch (err) {
-        res.status(500).send({ error: "UPLOAD_ERROR" });
+        console.error(">> ERROR_IMGBB_UPLOAD:", err.message);
+        res.status(500).send({ error: "UPLOAD_FAILED" });
     }
 });
 
+// 3. Eliminar post
 app.delete("/delete-post", (req, res) => {
     const { date } = req.body;
     if (fs.existsSync(postsPath)) {
