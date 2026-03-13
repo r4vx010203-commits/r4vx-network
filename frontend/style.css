@@ -1,0 +1,120 @@
+/* 1. Variables y Configuración Base */
+:root {
+    --neon-green: #00ff41;
+    --dark-bg: #0a0a0a;
+    --border-color: #333;
+}
+
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: 'Courier New', Courier, monospace;
+    color: white;
+    text-align: center;
+    /* Eliminamos el color de fondo sólido para que no tape el video si carga lento */
+    background: transparent;
+}
+
+/* 2. VIDEO AL FONDO */
+#video-fondo {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    min-width: 100%;
+    min-height: 100%;
+    z-index: -1; /* Lo envía detrás de todo el contenido */
+    object-fit: cover; /* Evita que se deforme el video */
+    filter: brightness(0.3); /* Lo oscurece para que resalten las letras verdes */
+}
+
+/* 3. Encabezado */
+#terminal-header {
+    padding: 20px;
+    font-size: 25px;
+    border-bottom: 2px solid var(--neon-green);
+    color: var(--neon-green);
+    text-shadow: 0 0 5px var(--neon-green);
+    margin-bottom: 30px;
+}
+
+/* 4. Panel de Publicación (Más pequeño: 450px) */
+#publish-box {
+    background: rgba(21, 21, 21, 0.85); /* Transparencia para ver el video */
+    width: 450px; 
+    margin: 0 auto 20px auto;
+    padding: 15px;
+    border: 1px solid var(--neon-green);
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+textarea, input {
+    width: 100%;
+    background: #000;
+    border: 1px solid #333;
+    color: var(--neon-green);
+    padding: 8px;
+    margin-bottom: 10px;
+    font-family: monospace;
+    box-sizing: border-box;
+    outline: none;
+}
+
+button {
+    background: var(--neon-green);
+    color: #000;
+    border: none;
+    padding: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    width: 100%;
+}
+
+/* 5. Tarjetas de Posts (Más pequeñas: 450px) */
+.post-card {
+    background: rgba(21, 21, 21, 0.85);
+    width: 450px;
+    margin: 15px auto;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    text-align: left;
+    box-sizing: border-box;
+}
+
+/* 6. BOTÓN ELIMINAR MINI */
+.delete-btn {
+    float: right;
+    background: transparent;
+    color: #ff4d4d;
+    border: none;
+    cursor: pointer;
+    font-size: 10px; /* Tamaño mini */
+    font-family: 'Courier New', monospace;
+    opacity: 0.5;
+    transition: 0.3s;
+    padding: 0 5px;
+}
+
+.delete-btn:hover {
+    opacity: 1;
+    color: white;
+    text-shadow: 0 0 5px red;
+}
+
+/* Elementos internos de los posts */
+.status-dot {
+    height: 8px;
+    width: 8px;
+    background-color: var(--neon-green);
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.post-media img {
+    width: 100%;
+    margin-top: 10px;
+    border-radius: 4px;
+}

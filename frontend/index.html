@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>R4VX | Network</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <video autoplay muted loop id="video-fondo">
+        <source src="fondo.mp4" type="video/mp4">
+        Tu navegador no soporta videos.
+    </video>
+
+    <div id="terminal-header">>> SYSTEM_ROOT: ACCESS_GRANTED</div>
+    
+    <div id="publish-box">
+        <div class="terminal-label">>> INJECT_NEW_POST</div>
+        <textarea id="post-text" placeholder="Escribe tu mensaje cifrado..."></textarea>
+        <input type="text" id="post-image" placeholder="URL de imagen (opcional)">
+        <button onclick="publishPost()">EJECUTAR_INYECCION</button>
+    </div>
+
+    <div id="feed"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
