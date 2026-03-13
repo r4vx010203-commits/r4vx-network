@@ -1,78 +1,85 @@
 const express = require("express");
-const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 const axios = require("axios");
 const FormData = require("form-data");
+const mongoose = require("mongoose");
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Servir el frontend
+// Servir archivos estáticos del frontend
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-const postsPath = path.join(__dirname, "../database/posts.json");
+// --- CONFIGURACIÓN DE MONGODB ATLAS (CONEXIÓN ETERNA) ---
+const MONGO_URI = "mongodb+srv://admin:r4vx.123321@cluster0.zbiip.mongodb.net/r4vx_db?retryWrites=true&w=majority";
 
-// Configuración de Multer para usar MEMORIA (evita que Render borre archivos locales)
+mongoose.connect(MONGO_URI)
+    .then(() => console.log(">> DATABASE_CONNECTED_ETERNAL"))
+    .catch(err => console.error(">> DATABASE_CONNECTION_ERROR:", err));
+
+// Esquema de los posts para la base de datos
+const PostSchema = new mongoose.Schema({
+    text: String,
+    date: String,
+    image: String
+});
+const Post = mongoose.model("Post", PostSchema);
+
+// Configuración de Multer para procesar imágenes en memoria
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// 1. Obtener posts
-app.get("/posts", (req, res) => {
-    if (!fs.existsSync(postsPath)) return res.json([]);
-    const data = fs.readFileSync(postsPath, "utf8");
-    res.json(JSON.parse(data));
+// 1. Obtener posts desde la nube (MongoDB)
+app.get("/posts", async (req, res) => {
+    try {
+        const posts = await Post.find().sort({ _id: -1 }); 
+        res.json(posts);
+    } catch (err) {
+        res.status(500).json([]);
+    }
 });
 
-// 2. Publicar con subida directa a ImgBB
+// 2. Publicar con subida a ImgBB y guardado en MongoDB
 app.post("/publish", upload.single("image"), async (req, res) => {
     try {
         const { text, date } = req.body;
         let imageUrl = null;
 
-        // Si el usuario subió una imagen, la enviamos a ImgBB
         if (req.file) {
             const form = new FormData();
-            // Convertimos el buffer de la imagen a Base64 para ImgBB
             form.append("image", req.file.buffer.toString("base64"));
             
-            // Reemplaza 'TU_API_KEY_AQUI' con la clave que copiaste de https://api.imgbb.com/
             const imgbbResponse = await axios.post("https://api.imgbb.com/1/upload?key=1974f36958f9e830f76b630a9f2a1fcd", form, {
                 headers: { ...form.getHeaders() }
             });
             
-            imageUrl = imgbbResponse.data.data.url; // Esta URL es permanente
+            imageUrl = imgbbResponse.data.data.url;
         }
 
-        let posts = [];
-        if (fs.existsSync(postsPath)) {
-            posts = JSON.parse(fs.readFileSync(postsPath, "utf8"));
-        }
-        
-        posts.unshift({ text, date, image: imageUrl });
-        fs.writeFileSync(postsPath, JSON.stringify(posts, null, 2));
+        const newPost = new Post({ text, date, image: imageUrl });
+        await newPost.save();
         
         res.status(200).send({ status: "ok" });
     } catch (err) {
-        console.error(">> ERROR_IMGBB_UPLOAD:", err.message);
+        console.error(">> SYSTEM_FAILURE:", err.message);
         res.status(500).send({ error: "UPLOAD_FAILED" });
     }
 });
 
-// 3. Eliminar post
-app.delete("/delete-post", (req, res) => {
+// 3. Eliminar post de la nube
+app.delete("/delete-post", async (req, res) => {
     const { date } = req.body;
-    if (fs.existsSync(postsPath)) {
-        let posts = JSON.parse(fs.readFileSync(postsPath, "utf8"));
-        const updatedPosts = posts.filter(post => post.date !== date);
-        fs.writeFileSync(postsPath, JSON.stringify(updatedPosts, null, 2));
+    try {
+        await Post.deleteOne({ date: date });
         res.status(200).send({ status: "deleted" });
+    } catch (err) {
+        res.status(500).send({ error: "DELETE_FAILED" });
     }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`>> SYSTEM_ARMED: PORT ${PORT}`);
+    console.log(`>> R4VX_SYSTEM_ONLINE: PORT ${PORT}`);
 });
-
